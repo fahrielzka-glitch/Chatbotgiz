@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GiziCheck AI — Konsultasi Gizi & Kalkulator TKPI</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0f0a;
+    --surface: #111711;
+    --surface2: #1a221a;
+    --border: #2a3a2a;
+    --green: #4ade80;
+    --green-dim: #166534;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --blue: #60a5fa;
+    --text: #e8f0e8;
+    --text-dim: #6b8f6b;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Lora', serif; min-height: 100vh; overflow-x: hidden; }
+  body::before { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E"); pointer-events:none; z-index:0; }
+  .container { max-width: 960px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+  /* NAV TABS */
+  .tab-nav { display: flex; gap: 4px; padding: 32px 0 0; border-bottom: 1px solid var(--border); }
+  .tab-btn { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 12px 24px; border: 1px solid transparent; border-bottom: none; border-radius: 6px 6px 0 0; cursor: pointer; background: transparent; color: var(--text-dim); transition: all 0.2s; }
+  .tab-btn.active { background: var(--surface); border-color: var(--border); color: var(--green); border-bottom: 1px solid var(--surface); margin-bottom: -1px; }
+  .tab-btn:hover:not(.active) { color: var(--text); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* HEADER */
+  .panel-header { padding: 36px 0 28px; border-bottom: 1px solid var(--border); }
+  .header-tag { font-family: var(--mono); font-size: 11px; color: var(--green); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .header-tag::before { content:''; display:inline-block; width:8px; height:8px; background:var(--green); border-radius:50%; animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+  h1 { font-family: 'Syne', sans-serif; font-size: clamp(28px,5vw,46px); font-weight: 800; line-height: 1.05; margin-bottom: 10px; }
+  h1 span { color: var(--green); }
+  .subtitle { font-family: var(--mono); font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+
+  /* SHARED BUTTONS */
+  .btn { font-family:'Syne',sans-serif; font-weight:700; font-size:13px; letter-spacing:1px; text-transform:uppercase; padding:12px 22px; border:none; border-radius:6px; cursor:pointer; transition:all .2s; white-space:nowrap; }
+  .btn-primary { background:var(--green); color:#0a0f0a; }
+  .btn-primary:hover:not(:disabled) { background:#86efac; transform:translateY(-1px); }
+  .btn-primary:disabled { opacity:.4; cursor:not-allowed; }
+  .btn-secondary { background:var(--surface2); color:var(--text); border:1px solid var(--border); }
+  .btn-secondary:hover { border-color:var(--blue); color:var(--blue); }
+  .spinner { width:14px; height:14px; border:2px solid var(--border); border-top-color:var(--green); border-radius:50%; animation:spin .8s linear infinite; flex-shrink:0; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  @keyframes slideIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ==================== CHATBOT ==================== */
+  .chat-wrapper { display:flex; flex-direction:column; height:calc(100vh - 260px); min-height:480px; padding: 24px 0 0; }
+  .chat-messages { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:16px; padding-bottom:16px; }
+  .chat-messages::-webkit-scrollbar { width:4px; }
+  .chat-messages::-webkit-scrollbar-track { background:var(--bg); }
+  .chat-messages::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+  .msg { display:flex; gap:10px; animation:slideIn .3s ease; max-width:85%; }
+  .msg.user { align-self:flex-end; flex-direction:row-reverse; }
+  .msg.ai { align-self:flex-start; }
+
+  .msg-avatar { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; }
+  .msg.ai .msg-avatar { background:var(--green-dim); border:1px solid var(--green); }
+  .msg.user .msg-avatar { background:#1e3a5f; border:1px solid var(--blue); }
+
+  .msg-bubble { padding:12px 16px; border-radius:12px; font-size:13px; line-height:1.8; }
+  .msg.ai .msg-bubble { background:var(--surface); border:1px solid var(--border); color:#c4d4c4; border-radius:4px 12px 12px 12px; }
+  .msg.user .msg-bubble { background:#1e3a5f; border:1px solid #2d5a8e; color:var(--text); border-radius:12px 4px 12px 12px; }
+
+  .msg-bubble strong { color:var(--text); font-weight:600; }
+  .msg-bubble h3 { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; color:var(--green); margin:12px 0 4px; }
+  .msg-bubble ul { margin:6px 0 6px 16px; }
+  .msg-bubble li { margin-bottom:3px; }
+  .msg-bubble p { margin-bottom:8px; }
+  .msg-bubble p:last-child { margin-bottom:0; }
+
+  .msg-typing { display:flex; align-items:center; gap:4px; padding:14px 16px; }
+  .dot { width:6px; height:6px; background:var(--text-dim); border-radius:50%; animation:bounce 1.2s infinite; }
+  .dot:nth-child(2) { animation-delay:.2s; }
+  .dot:nth-child(3) { animation-delay:.4s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+  .chat-input-area { border-top:1px solid var(--border); padding-top:16px; display:flex; gap:10px; align-items:flex-end; }
+  .chat-input { flex:1; background:var(--surface); border:1px solid var(--border); color:var(--text); font-family:var(--mono); font-size:13px; padding:12px 16px; border-radius:8px; outline:none; resize:none; min-height:48px; max-height:120px; line-height:1.6; transition:border-color .2s; }
+  .chat-input:focus { border-color:var(--green); }
+  .chat-input::placeholder { color:var(--text-dim); }
+
+  .quick-chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+  .q-chip { font-family:var(--mono); font-size:10px; padding:5px 11px; border:1px solid var(--border); border-radius:100px; cursor:pointer; color:var(--text-dim); background:transparent; transition:all .15s; }
+  .q-chip:hover { border-color:var(--green); color:var(--green); }
+
+  .chat-meta { font-family:var(--mono); font-size:10px; color:var(--text-dim); margin-top:3px; }
+
+  .error-box { background:#450a0a; border:1px solid #7f1d1d; border-radius:6px; padding:10px 14px; font-family:var(--mono); font-size:11px; color:var(--red); margin-top:10px; }
+
+  /* ==================== TKPI CALCULATOR ==================== */
+  .tkpi-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 28px 0; }
+  @media(max-width:680px) { .tkpi-layout { grid-template-columns:1fr; } }
+
+  .tkpi-panel { background:var(--surface); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .tkpi-panel-header { padding:14px 18px; background:var(--surface2); border-bottom:1px solid var(--border); font-family:'Syne',sans-serif; font-weight:700; font-size:13px; color:var(--text); display:flex; align-items:center; gap:8px; }
+  .tkpi-panel-body { padding:16px 18px; }
+
+  .search-input { width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); font-family:var(--mono); font-size:12px; padding:10px 14px; border-radius:6px; outline:none; transition:border-color .2s; }
+  .search-input:focus { border-color:var(--green); }
+  .search-input::placeholder { color:var(--text-dim); }
+
+  .food-list { margin-top:10px; max-height:300px; overflow-y:auto; }
+  .food-list::-webkit-scrollbar { width:4px; }
+  .food-list::-webkit-scrollbar-track { background:var(--bg); }
+  .food-list::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+  .food-item { padding:8px 12px; border-radius:5px; cursor:pointer; font-family:var(--mono); font-size:11px; color:var(--text-dim); transition:all .15s; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .food-item:hover { background:var(--surface2); color:var(--text); }
+  .food-item .food-name { flex:1; }
+  .food-item .food-kal { color:var(--yellow); font-size:10px; }
+  .food-item .food-cat { color:#4b7a4b; font-size:9px; text-transform:uppercase; letter-spacing:1px; }
+  .no-results { font-family:var(--mono); font-size:11px; color:var(--text-dim); padding:16px 12px; text-align:center; }
+
+  /* Selected foods */
+  .selected-foods { display:flex; flex-direction:column; gap:10px; }
+  .selected-food-row { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:10px 14px; }
+  .sfr-top { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
+  .sfr-name { font-family:'Syne',sans-serif; font-size:12px; font-weight:700; color:var(--text); flex:1; }
+  .sfr-remove { font-family:var(--mono); font-size:11px; color:var(--text-dim); cursor:pointer; padding:2px 6px; border-radius:3px; transition:all .15s; }
+  .sfr-remove:hover { color:var(--red); background:#450a0a; }
+  .sfr-gram { display:flex; align-items:center; gap:8px; }
+  .gram-input { width:70px; background:var(--bg); border:1px solid var(--border); color:var(--text); font-family:var(--mono); font-size:12px; padding:5px 9px; border-radius:4px; outline:none; text-align:right; }
+  .gram-input:focus { border-color:var(--green); }
+  .gram-label { font-family:var(--mono); font-size:11px; color:var(--text-dim); }
+  .sfr-macros { display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; }
+  .macro-pill { font-family:var(--mono); font-size:10px; padding:2px 8px; border-radius:100px; background:var(--bg); border:1px solid var(--border); color:var(--text-dim); }
+  .macro-pill.energy { border-color:#78350f; color:var(--yellow); }
+  .macro-pill.protein { border-color:var(--green-dim); color:var(--green); }
+  .macro-pill.lemak { border-color:#1e3a5f; color:var(--blue); }
+  .macro-pill.karbo { border-color:#4a1d96; color:#c4b5fd; }
+
+  /* Totals */
+  .totals-section { margin-top:16px; }
+  .totals-title { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; color:var(--text); margin-bottom:12px; }
+  .total-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .total-item { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:10px 14px; }
+  .total-item-label { font-family:var(--mono); font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+  .total-item-val { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; }
+  .total-item-unit { font-family:var(--mono); font-size:10px; color:var(--text-dim); margin-left:3px; }
+  .val-energy { color:var(--yellow); }
+  .val-protein { color:var(--green); }
+  .val-lemak { color:var(--blue); }
+  .val-karbo { color:#c4b5fd; }
+  .val-serat { color:#fb923c; }
+  .val-besi { color:#f87171; }
+
+  .ade-bar { margin-top:12px; }
+  .ade-row { display:flex; align-items:center; gap:8px; margin-bottom:7px; }
+  .ade-lbl { font-family:var(--mono); font-size:10px; color:var(--text-dim); min-width:80px; }
+  .ade-wrap { flex:1; height:6px; background:var(--border); border-radius:100px; overflow:hidden; }
+  .ade-fill { height:100%; border-radius:100px; transition:width .5s ease; }
+  .ade-pct { font-family:var(--mono); font-size:10px; color:var(--text-dim); min-width:38px; text-align:right; }
+
+  .rda-note { font-family:var(--mono); font-size:10px; color:var(--text-dim); margin-top:10px; line-height:1.6; }
+
+  .mineral-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-top:10px; }
+  .mineral-item { background:var(--bg); border:1px solid var(--border); border-radius:5px; padding:8px 10px; text-align:center; }
+  .mineral-name { font-family:var(--mono); font-size:9px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; }
+  .mineral-val { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; color:var(--text); }
+  .mineral-unit { font-family:var(--mono); font-size:9px; color:var(--text-dim); }
+
+  .export-btn { margin-top:14px; width:100%; }
+
+  footer { padding:20px 0 40px; border-top:1px solid var(--border); font-family:var(--mono); font-size:11px; color:var(--text-dim); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-top:4px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- TAB NAV -->
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('chat')">💬 Konsultasi Gizi AI</button>
+    <button class="tab-btn" onclick="switchTab('tkpi')">🥦 Kalkulator TKPI</button>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- TAB 1: CHATBOT KONSULTASI GIZI -->
+  <!-- ============================================================ -->
+  <div id="tab-chat" class="tab-panel active">
+    <div class="panel-header">
+      <div class="header-tag">GiziCheck AI · Konsultasi Gizi · Powered by Claude</div>
+      <h1>Asisten Gizi<br><span>Mahasiswa</span></h1>
+      <p class="subtitle">Tanya apa saja soal gizi, nutrisi, tugas kuliah, kasus klinis, sampai kebijakan pangan · Berbasis evidence-based nutrition science</p>
+    </div>
+
+    <div class="chat-wrapper">
+      <!-- Quick chips -->
+      <div class="quick-chips" id="quickChips">
+        <button class="q-chip" onclick="sendQuick('Jelaskan konsep 1000 Hari Pertama Kehidupan dan dampaknya terhadap stunting')">1000 HPK & stunting</button>
+        <button class="q-chip" onclick="sendQuick('Apa perbedaan malnutrisi, undernutrisi, dan hidden hunger? Jelaskan dengan contoh')">Malnutrisi vs undernutrisi</button>
+        <button class="q-chip" onclick="sendQuick('Bagaimana cara menghitung kebutuhan energi menggunakan rumus Harris-Benedict?')">Rumus Harris-Benedict</button>
+        <button class="q-chip" onclick="sendQuick('Jelaskan klasifikasi status gizi anak berdasarkan indeks BB/U, TB/U, dan BB/TB WHO')">Status gizi anak WHO</button>
+        <button class="q-chip" onclick="sendQuick('Apa itu AKG dan bagaimana cara menggunakannya dalam perencanaan menu?')">AKG & perencanaan menu</button>
+        <button class="q-chip" onclick="sendQuick('Jelaskan perbedaan vitamin larut lemak dan larut air, beserta contoh dan fungsinya')">Vitamin larut lemak vs air</button>
+        <button class="q-chip" onclick="sendQuick('Apa saja faktor penyebab dan cara penanggulangan anemia gizi besi di Indonesia?')">Anemia gizi besi</button>
+        <button class="q-chip" onclick="sendQuick('Bagaimana diet pada pasien diabetes mellitus tipe 2? Prinsip 3J itu apa?')">Diet DM tipe 2 & 3J</button>
+      </div>
+
+      <!-- Messages -->
+      <div class="chat-messages" id="chatMessages">
+        <div class="msg ai">
+          <div class="msg-avatar">🌿</div>
+          <div>
+            <div class="msg-bubble">
+              Halo! Gw asisten gizi berbasis AI, siap bantu lo dengan materi kuliah gizi, kasus klinis, perhitungan nutrisi, sampai kebijakan pangan Indonesia. Tanya aja langsung — atau klik salah satu topik di atas buat mulai! 🎓
+            </div>
+            <div class="chat-meta">GiziCheck AI · siap membantu</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div id="chatErrorBox"></div>
+      <div class="chat-input-area">
+        <textarea class="chat-input" id="chatInput" placeholder="Tanya soal gizi, nutrisi, tugas, kasus klinis..." rows="1"></textarea>
+        <button class="btn btn-primary" id="sendBtn" onclick="sendChat()">Kirim →</button>
+        <button class="btn btn-secondary" onclick="clearChat()" title="Reset chat">↺</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- TAB 2: TKPI CALCULATOR -->
+  <!-- ============================================================ -->
+  <div id="tab-tkpi" class="tab-panel">
+    <div class="panel-header">
+      <div class="header-tag">TKPI 2020 · Kementerian Kesehatan RI</div>
+      <h1>Kalkulator<br><span>Komposisi Pangan</span></h1>
+      <p class="subtitle">Hitung kandungan zat gizi berdasarkan Tabel Komposisi Pangan Indonesia 2020 · per 100g atau sesuai berat yang ditentukan</p>
+    </div>
+
+    <div class="tkpi-layout">
+      <!-- LEFT: Search & Select -->
+      <div>
+        <div class="tkpi-panel">
+          <div class="tkpi-panel-header">🔍 Cari Bahan Pangan</div>
+          <div class="tkpi-panel-body">
+            <input type="text" class="search-input" id="foodSearch" placeholder="Ketik nama bahan... (nasi, ayam, tahu...)" oninput="searchFood(this.value)">
+            <div class="food-list" id="foodList">
+              <div class="no-results">Ketik untuk mencari bahan pangan dari TKPI 2020</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tkpi-panel" style="margin-top:14px;">
+          <div class="tkpi-panel-header">🧺 Bahan Dipilih (<span id="selectedCount">0</span>)</div>
+          <div class="tkpi-panel-body">
+            <div class="selected-foods" id="selectedFoods">
+              <div class="no-results" id="emptySelected">Belum ada bahan. Cari dan klik bahan di atas.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Totals -->
+      <div>
+        <div class="tkpi-panel">
+          <div class="tkpi-panel-header">📊 Total Zat Gizi</div>
+          <div class="tkpi-panel-body">
+            <div class="total-grid">
+              <div class="total-item">
+                <div class="total-item-label">Energi</div>
+                <div><span class="total-item-val val-energy" id="tot-energi">0</span><span class="total-item-unit">kkal</span></div>
+              </div>
+              <div class="total-item">
+                <div class="total-item-label">Protein</div>
+                <div><span class="total-item-val val-protein" id="tot-protein">0</span><span class="total-item-unit">g</span></div>
+              </div>
+              <div class="total-item">
+                <div class="total-item-label">Lemak</div>
+                <div><span class="total-item-val val-lemak" id="tot-lemak">0</span><span class="total-item-unit">g</span></div>
+              </div>
+              <div class="total-item">
+                <div class="total-item-label">Karbohidrat</div>
+                <div><span class="total-item-val val-karbo" id="tot-karbo">0</span><span class="total-item-unit">g</span></div>
+              </div>
+              <div class="total-item">
+                <div class="total-item-label">Serat</div>
+                <div><span class="total-item-val val-serat" id="tot-serat">0</span><span class="total-item-unit">g</span></div>
+              </div>
+              <div class="total-item">
+                <div class="total-item-label">Besi (Fe)</div>
+                <div><span class="total-item-val val-besi" id="tot-besi">0</span><span class="total-item-unit">mg</span></div>
+              </div>
+            </div>
+
+            <div class="mineral-grid">
+              <div class="mineral-item"><div class="mineral-name">Ca</div><div class="mineral-val" id="tot-kalsium">0</div><div class="mineral-unit">mg</div></div>
+              <div class="mineral-item"><div class="mineral-name">P</div><div class="mineral-val" id="tot-fosfor">0</div><div class="mineral-unit">mg</div></div>
+              <div class="mineral-item"><div class="mineral-name">Na</div><div class="mineral-val" id="tot-natrium">0</div><div class="mineral-unit">mg</div></div>
+              <div class="mineral-item"><div class="mineral-name">K</div><div class="mineral-val" id="tot-kalium">0</div><div class="mineral-unit">mg</div></div>
+              <div class="mineral-item"><div class="mineral-name">Zn</div><div class="mineral-val" id="tot-seng">0</div><div class="mineral-unit">mg</div></div>
+              <div class="mineral-item"><div class="mineral-name">Vit C</div><div class="mineral-val" id="tot-vitc">0</div><div class="mineral-unit">mg</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tkpi-panel" style="margin-top:14px;">
+          <div class="tkpi-panel-header">📏 % AKG (Dewasa ~2000 kkal)</div>
+          <div class="tkpi-panel-body">
+            <div class="ade-bar">
+              <div class="ade-row"><div class="ade-lbl">Energi</div><div class="ade-wrap"><div class="ade-fill" id="bar-energi" style="background:var(--yellow);width:0%"></div></div><div class="ade-pct" id="pct-energi">0%</div></div>
+              <div class="ade-row"><div class="ade-lbl">Protein</div><div class="ade-wrap"><div class="ade-fill" id="bar-protein" style="background:var(--green);width:0%"></div></div><div class="ade-pct" id="pct-protein">0%</div></div>
+              <div class="ade-row"><div class="ade-lbl">Lemak</div><div class="ade-wrap"><div class="ade-fill" id="bar-lemak" style="background:var(--blue);width:0%"></div></div><div class="ade-pct" id="pct-lemak">0%</div></div>
+              <div class="ade-row"><div class="ade-lbl">Karbohidrat</div><div class="ade-wrap"><div class="ade-fill" id="bar-karbo" style="background:#c4b5fd;width:0%"></div></div><div class="ade-pct" id="pct-karbo">0%</div></div>
+              <div class="ade-row"><div class="ade-lbl">Serat</div><div class="ade-wrap"><div class="ade-fill" id="bar-serat" style="background:#fb923c;width:0%"></div></div><div class="ade-pct" id="pct-serat">0%</div></div>
+              <div class="ade-row"><div class="ade-lbl">Besi</div><div class="ade-wrap"><div class="ade-fill" id="bar-besi" style="background:var(--red);width:0%"></div></div><div class="ade-pct" id="pct-besi">0%</div></div>
+              <div class="ade-row"><div class="ade-lbl">Kalsium</div><div class="ade-wrap"><div class="ade-fill" id="bar-kalsium" style="background:#e879f9;width:0%"></div></div><div class="ade-pct" id="pct-kalsium">0%</div></div>
+              <div class="ade-row"><div class="ade-lbl">Vit C</div><div class="ade-wrap"><div class="ade-fill" id="bar-vitc" style="background:#34d399;width:0%"></div></div><div class="ade-pct" id="pct-vitc">0%</div></div>
+            </div>
+            <div class="rda-note">AKG ref: Energi 2150kkal · Protein 60g · Lemak 72g · KH 300g · Serat 30g · Fe 26mg · Ca 1000mg · Vit C 75mg (Permenkes 2019)</div>
+            <button class="btn btn-secondary export-btn" onclick="exportData()">⬇ Export CSV</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>GiziCheck AI · TKPI 2020 · Indonesia</span>
+    <span>Evidence-based nutrition science</span>
+  </footer>
+</div>
+
+<script>
+// ================================================================
+// TAB SWITCHING
+// ================================================================
+function switchTab(tab) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ================================================================
+// CHATBOT KONSULTASI GIZI
+// ================================================================
+const SYSTEM_PROMPT = `Kamu adalah asisten konsultasi gizi bernama GiziCheck AI, dirancang khusus untuk membantu mahasiswa gizi Indonesia. Kamu berbicara dalam Bahasa Indonesia yang santai tapi tetap ilmiah dan akurat.
+
+Keahlianmu mencakup:
+- Ilmu gizi dasar dan terapan (zat gizi makro & mikro, metabolisme, biokimia gizi)
+- Gizi klinik: diet penyakit DM, hipertensi, CKD, gizi buruk, anemia, dll
+- Gizi masyarakat: stunting, wasting, obesitas, 1000 HPK, ASI eksklusif
+- Antropometri dan penilaian status gizi (IMT, BB/U, TB/U, BB/TB, LiLA)
+- Perhitungan kebutuhan energi (Harris-Benedict, Mifflin, FAO/WHO)
+- Perencanaan dan penilaian diet: recall 24 jam, food frequency questionnaire
+- Kebijakan gizi Indonesia: MBG, PMT, Posyandu, AKG Permenkes 2019
+- TKPI 2020: tabel komposisi pangan Indonesia
+
+Format jawaban:
+- Untuk pertanyaan panjang/kompleks: gunakan struktur yang jelas dengan **bold** untuk poin penting, dan - untuk list
+- Untuk soal hitungan: tampilkan langkah-langkah dengan jelas
+- Untuk kasus klinis: berikan analisis sistematis
+- Selalu sebutkan sumber/referensi standar bila relevan (WHO, Kemenkes, PERSAGI)
+- Jawab sejelas dan seakurat mungkin, kamu adalah tutor mahasiswa gizi yang andal`;
+
+let chatHistory = [];
+
+function formatMsg(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>')
+    .replace(/^(?!<[hul])(.+)$/gm, m => m.trim().startsWith('<') ? m : `<p>${m}</p>`)
+    .replace(/<p><\/p>/g, '');
+}
+
+function appendMsg(role, text, isTyping = false) {
+  const container = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  const now = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+  if(isTyping) {
+    div.id = 'typingIndicator';
+    div.innerHTML = `<div class="msg-avatar">🌿</div><div><div class="msg-bubble"><div class="msg-typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div></div>`;
+  } else if(role === 'ai') {
+    div.innerHTML = `<div class="msg-avatar">🌿</div><div><div class="msg-bubble">${formatMsg(text)}</div><div class="chat-meta">${now}</div></div>`;
+  } else {
+    div.innerHTML = `<div class="msg-avatar">👤</div><div><div class="msg-bubble">${text.replace(/\n/g,'<br>')}</div><div class="chat-meta">${now}</div></div>`;
+  }
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typingIndicator');
+  if(t) t.remove();
+}
+
+async function sendChat() {
+  const input = document.getElementById('chatInput');
+  const btn = document.getElementById('sendBtn');
+  const text = input.value.trim();
+  if(!text || btn.disabled) return;
+
+  // Hide quick chips after first message
+  document.getElementById('quickChips').style.display = 'none';
+  document.getElementById('chatErrorBox').innerHTML = '';
+
+  appendMsg('user', text);
+  chatHistory.push({role:'user', content:text});
+  input.value = '';
+  input.style.height = 'auto';
+  btn.disabled = true;
+
+  const typing = appendMsg('ai', '', true);
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        system: SYSTEM_PROMPT,
+        messages: chatHistory
+      })
+    });
+    if(!res.ok) throw new Error('API ' + res.status);
+    const data = await res.json();
+    const reply = data.content.map(b => b.text || '').join('');
+    chatHistory.push({role:'assistant', content:reply});
+    removeTyping();
+    appendMsg('ai', reply);
+  } catch(err) {
+    removeTyping();
+    document.getElementById('chatErrorBox').innerHTML = `<div class="error-box">⚠ Gagal menghubungi AI. Periksa koneksi dan coba lagi.</div>`;
+  } finally {
+    btn.disabled = false;
+    input.focus();
+  }
+}
+
+function sendQuick(text) {
+  document.getElementById('chatInput').value = text;
+  sendChat();
+}
+
+function clearChat() {
+  chatHistory = [];
+  const c = document.getElementById('chatMessages');
+  c.innerHTML = `<div class="msg ai">
+    <div class="msg-avatar">🌿</div>
+    <div>
+      <div class="msg-bubble">Chat direset! Tanya lagi ya — gw siap bantu tugas dan materi kuliah gizi lo 🎓</div>
+      <div class="chat-meta">GiziCheck AI · siap membantu</div>
+    </div>
+  </div>`;
+  document.getElementById('quickChips').style.display = 'flex';
+  document.getElementById('chatErrorBox').innerHTML = '';
+}
+
+// Auto-resize textarea
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = document.getElementById('chatInput');
+  if(inp) {
+    inp.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+    inp.addEventListener('keydown', e => {
+      if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+    });
+  }
+});
+
+// ================================================================
+// TKPI DATABASE (dari TKPI 2020 Kemenkes RI)
+// Format: [kode, nama, kategori, air, energi, protein, lemak, kh, serat, abu, kalsium, fosfor, besi, natrium, kalium, tembaga, seng, retinol, bkaroten, thia, ribo, niasin, vitc, bdd]
+// ================================================================
+const TKPI_DB = [
+  // SEREALIA
+  ["AR001","Beras giling mentah","Serealia",12.0,357,8.4,1.7,77.1,0.2,0.8,147,81,1.8,27,71,0.10,0.5,0,0,0.20,0.08,2.6,0,100],
+  ["AP001","Nasi","Serealia",56.7,180,3.0,0.3,39.8,0.2,0.2,25,27,0.4,1,38,0.10,0.6,0,0,0.05,0.10,2.6,0,100],
+  ["AP002","Nasi tim","Serealia",71.0,120,2.4,0.4,26.0,0.5,0.2,3,7,0.4,0,24,0.10,0.4,0,0,0.10,0.00,1.4,0,100],
+  ["AP004","Tepung beras","Serealia",12.0,353,7.0,0.5,80.0,2.4,0.5,5,140,0.8,5,241,0.10,0.8,0,0,0.12,0.10,1.2,0,100],
+  ["AP005","Nasi beras merah","Serealia",64.0,149,2.8,0.4,32.5,0.3,0.3,6,63,0.8,5,91,0.20,0.9,0,0,0.06,0.00,1.6,0,100],
+  ["AP024","Roti putih","Serealia",40.0,248,8.0,1.2,50.0,9.1,0.8,10,95,1.5,530,91,0.15,0.9,0,0,0.10,0.29,2.4,0,100],
+  ["AP025","Tepung terigu","Serealia",11.8,333,9.0,1.0,77.2,0.3,1.0,22,150,1.3,2,0,0.00,2.8,0,0,0.10,0.07,1.0,0,100],
+  ["AP021","Mi basah","Serealia",80.0,88,0.6,3.3,14.0,0.1,2.1,14,13,6.8,63,14,0.06,0.4,0,0,0.00,0.00,0.0,0,100],
+  ["AP022","Mi kering","Serealia",10.6,339,10.0,1.7,6.3,0.4,1.4,31,143,3.9,760,83,0.29,1.9,0,0,0.00,0.08,2.2,0,100],
+  ["AP006","Bihun mentah","Serealia",12.9,348,4.7,0.1,82.1,1.2,0.2,6,35,1.8,12,5,0.08,0.7,0,0,0.00,0.00,0.2,0,100],
+  ["AP029","Biskuit","Serealia",2.2,458,6.9,14.4,75.1,2.1,1.4,62,87,2.7,241,20,0.16,0.6,0,14,0.09,0.15,1.4,0,100],
+  ["AR004","Beras hitam mentah","Serealia",12.9,351,8.0,1.3,76.9,20.1,0.9,6,198,0.1,15,105,0.10,1.6,0,0,0.21,0.06,0.0,0,100],
+  ["AP020","Makaroni mentah","Serealia",11.7,353,8.7,0.4,78.7,4.9,2.5,20,80,0.3,5,0,0.28,1.4,0,0,0.10,0.13,2.2,0,100],
+  // UMBI
+  ["BR016","Singkong segar","Umbi",61.4,154,1.0,0.3,36.8,0.9,0.5,77,24,1.1,39,94,0.30,0.4,0,0,0.06,0.10,0.5,31,85],
+  ["BR025","Talas bogor segar","Umbi",72.4,108,1.4,0.4,25.0,0.9,0.8,47,67,0.7,10,448,0.20,0.7,0,0,0.06,0.07,1.0,4,85],
+  ["BR013","Kentang segar","Umbi",83.4,62,2.1,0.2,13.5,0.5,0.6,63,58,0.7,73,96,0.40,0.3,0,0,0.09,0.10,1.0,21,85],
+  ["BR028","Ubi jalar kuning","Umbi",72.6,119,0.5,0.4,25.1,4.2,1.0,30,40,0.4,3,1,0.10,0.2,0,794,0.06,0.07,0.7,21,85],
+  ["BR030","Ubi jalar merah","Umbi",61.9,151,1.6,0.3,35.4,0.7,0.6,29,74,0.7,92,566,0.30,0.5,0,0,0.13,0.08,0.7,11,86],
+  ["BR031","Ubi jalar putih","Umbi",77.8,88,0.4,0.4,20.6,4.0,0.8,30,10,0.5,2,4,0.10,0.2,0,13,0.25,0.06,0.5,36,86],
+  ["BP008","Singkong kukus","Umbi",61.5,153,1.2,0.3,36.4,1.3,0.6,56,22,0.4,2,345,0.30,0.1,0,0,0.00,0.00,0.3,20,100],
+  ["BP063","Tapai singkong","Umbi",57.4,169,1.4,0.3,40.2,2.0,0.7,21,34,0.8,0,0,0.00,0,0,0,0.00,0.00,0,9,100],
+  // KACANG
+  ["CR017","Kacang kedelai kering","Kacang",12.7,381,40.4,16.7,24.9,3.2,5.5,222,682,10.0,210,713,1.58,3.9,237,31,0.52,0.12,1.2,0,100],
+  ["CR014","Kacang hijau kering","Kacang",15.5,323,22.9,1.5,56.8,7.5,3.3,223,319,7.5,42,816,1.90,2.9,156,223,0.46,0.15,1.5,10,100],
+  ["CR026","Kacang merah kering","Kacang",17.7,314,22.1,1.1,56.2,4.0,2.9,50,2429,10.3,11,1266,0.65,2.6,129,0,0.40,0.72,2.2,100,100],
+  ["CR032","Kacang tanah kering","Kacang",9.6,525,27.9,42.7,17.4,2.4,2.4,316,456,5.7,31,467,1.55,1.9,300,0,0.44,0.27,1.4,0,100],
+  ["CP061","Tahu mentah","Kacang",82.2,80,10.9,4.7,0.8,0.1,1.4,223,183,3.4,2,51,0.19,0.8,118,0,0.01,0.08,0.1,0,100],
+  ["CP062","Tahu goreng","Kacang",77.3,115,9.7,8.5,2.5,0.1,2.0,229,200,4.1,7,68,0.09,1.3,0,0,0.01,0.24,0.0,0,100],
+  ["CP077","Tempe kedelai mentah","Kacang",55.3,201,20.8,8.8,13.5,1.4,1.6,155,326,4.0,92,34,0.57,1.7,0,0,0.19,0.59,4.9,0,100],
+  ["CP076","Tempe goreng","Kacang",36.8,350,24.5,26.6,10.4,4.2,1.8,202,296,4.9,226,27,0.80,2.5,7,8,0.24,0.60,3.3,0,100],
+  ["CP060","Susu kedelai","Kacang",87.0,41,3.5,2.5,5.0,0.2,2.0,50,45,0.7,128,288,0.12,1.0,200,0,0.08,0.05,0.7,2,100],
+  ["CR030","Kacang tanah sangan","Kacang",1.2,560,29.5,43.0,24.1,2.9,2.2,107,366,4.1,34,510,1.69,2.1,0,0,0.31,0.30,15.5,0,100],
+  ["CP005","Kacang hijau rebus","Kacang",71.3,109,8.7,0.5,18.3,1.5,1.2,95,149,1.5,447,658,1.40,2.8,18,120,0.12,0.04,0.4,3,100],
+  // SAYURAN
+  ["DR008","Bayam segar","Sayuran",94.5,16,0.9,0.4,2.9,0.7,1.3,166,76,3.5,16,456,0.13,0.4,2699,2293,0.04,0.10,1.0,41,71],
+  ["DR100","Kangkung segar","Sayuran",91.0,28,3.4,0.7,3.9,2.0,1.0,67,54,2.3,65,250,0.13,0.4,2868,5542,0.07,0.36,2.0,17,60],
+  ["DR141","Sawi segar","Sayuran",92.2,28,2.3,0.3,4.0,2.5,1.2,220,38,2.9,22,437,0.12,0.2,2042,6460,0.09,0.23,0.7,102,87],
+  ["DR071","Daun singkong segar","Sayuran",84.4,50,6.2,1.1,7.1,2.4,1.2,166,99,1.3,17,23,0.10,2.0,0,3204,0.04,0.10,1.8,103,87],
+  ["DR065","Daun pepaya segar","Sayuran",75.4,87,8.0,2.0,11.9,1.5,2.7,353,63,0.8,4,927,0.20,1.5,5409,18250,0.15,0.50,1.9,140,71],
+  ["DR166","Wortel segar","Sayuran",89.9,36,1.0,0.6,7.9,1.0,0.6,45,74,1.0,70,245,0.06,0.3,3784,7125,0.04,0.04,1.0,18,80],
+  ["DR038","Daun kelor segar","Sayuran",75.5,92,5.1,1.6,14.3,8.2,3.5,1077,76,6.0,61,298,0.10,0.6,3266,0,0.30,0.10,4.2,22,65],
+  ["DR154","Terong segar","Sayuran",92.7,28,1.1,0.2,5.5,2.1,0.5,15,37,0.4,9,187,0.10,0.1,46,30,0.04,0.03,0.5,5,100],
+  ["DR161","Tomat merah segar","Sayuran",92.9,24,1.3,0.5,4.7,1.5,0.6,8,77,0.6,10,165,0.14,0.2,575,2083,0.06,0.07,0.4,34,100],
+  ["DR109","Ketimun segar","Sayuran",97.9,8,0.2,0.2,1.4,0.3,0.3,29,95,0.8,2,57,0.02,0.1,0,18,0.01,0.02,0.1,1,55],
+  ["DR097","Kacang panjang segar","Sayuran",91.8,31,2.3,0.1,5.3,2.7,0.5,60,64,0.6,30,213,0.10,0.5,0,125,0.70,0.10,0.3,46,92],
+  ["DR013","Buncis segar","Sayuran",89.6,34,2.4,0.3,7.2,1.9,0.5,101,42,0.7,8,250,0.07,0.3,0,772,0.05,0.40,2.8,11,90],
+  ["DR130","Nangka muda segar","Sayuran",85.4,57,2.0,0.4,11.3,8.3,0.9,45,29,0.5,1,247,0.04,0.1,21,25,0.07,0.06,0.7,9,80],
+  ["DR035","Daun katuk segar","Sayuran",81.0,59,6.4,1.0,9.9,1.5,1.7,233,98,3.5,21,479,0.30,1.3,9152,10020,0.00,0.31,2.3,164,40],
+  ["DP001","Bayam kukus","Sayuran",90.7,30,1.3,0.7,5.8,1.2,1.6,239,35,5.7,15,431,0.10,0.3,0,2699,0.02,0.10,0.9,32,100],
+  ["DP008","Daun singkong rebus","Sayuran",90.5,31,3.7,0.6,4.8,1.6,0.4,160,50,2.6,13,14,0.10,2.0,3897,4150,0.02,0.10,1.7,34,100],
+  // BUAH
+  ["ER073","Pepaya segar","Buah",87.0,46,0.5,0.1,12.2,1.6,0.6,23,12,1.7,4,221,0.02,0.3,1038,365,0.04,0.06,0.4,78,75],
+  ["ER054","Mangga segar","Buah",87.0,52,0.7,0.0,12.3,1.6,0.2,20,16,1.0,3,140,0.33,0.0,316,0,0.03,0.01,0.3,12,65],
+  ["ER089","Pisang raja segar","Buah",66.0,120,1.2,0.2,31.8,5.3,1.0,10,22,0.8,35,582,0.31,0.7,53,950,0.06,0.14,1.2,10,70],
+  ["ER074","Pisang ambon segar","Buah",73.0,108,1.0,0.8,24.3,1.9,1.0,20,30,0.2,10,356,0.20,0.2,37,0,0.05,0.11,0.1,9,75],
+  ["ER031","Jambu biji segar","Buah",86.0,64,0.9,0.3,12.2,2.4,0.6,14,28,1.1,10,53,0.02,0.3,27,25,0.02,0.03,0.8,87,82],
+  ["ER070","Nanas segar","Buah",89.0,40,0.6,0.3,9.9,0.6,0.3,22,14,0.9,18,111,0.03,0.1,0,17,0.02,0.04,0.2,22,53],
+  ["ER039","Jeruk manis segar","Buah",87.0,45,0.9,0.2,11.2,1.4,0.5,33,23,0.4,4,472,0.08,0.2,0,190,0.08,0.03,0.2,49,72],
+  ["ER023","Durian segar","Buah",65.0,149,2.5,3.0,21.5,3.5,8.0,7,44,1.3,1,601,0.12,0.3,146,175,0.10,0.19,136.5,53,22],
+  ["ER022","Duku segar","Buah",82.0,63,1.0,0.2,16.1,4.3,0.7,18,9,0.9,2,149,0.09,0.2,0,0,0.05,0.15,1.5,9,64],
+  ["ER106","Sirsak segar","Buah",82.0,65,1.0,0.3,16.3,3.2,0.7,14,27,0.6,2,299,0.08,1.0,8,10,0.07,0.08,0.7,20,68],
+  ["ER001","Alpukat segar","Buah",84.0,85,0.9,6.5,7.7,0.6,0.4,10,20,0.9,2,278,0.20,0.4,189,180,0.05,0.08,1.0,13,61],
+  ["ER105","Semangka segar","Buah",92.0,28,0.5,0.2,6.9,0.4,0.3,7,12,0.2,7,94,0.04,0.1,315,590,0.05,0.05,0.3,6,46],
+  ["ER064","Manggis segar","Buah",83.0,63,0.6,0.6,15.6,1.5,0.2,8,12,0.8,10,62,0.10,0.1,0,0,0.03,0.03,0.3,5,29],
+  // DAGING & UNGGAS
+  ["FR005","Ayam daging segar","Daging",55.9,298,18.2,25.0,0.0,0.0,0.9,14,200,1.5,109,386,0.11,0.6,245,0,0.08,0.14,10.4,0,58],
+  ["FR024","Sapi daging gemuk","Daging",60.0,273,17.5,22.0,0.0,0.0,0.5,10,150,2.6,93,267,0.17,6.4,12,0,0.08,0.18,7.3,0,100],
+  ["FR025","Sapi daging kurus","Daging",69.0,174,19.6,10.0,0.0,0.0,1.4,11,181,2.9,83,489,0.07,4.9,6,181,0.07,0.51,1.2,0,100],
+  ["FR019","Kambing daging segar","Daging",70.3,149,16.6,9.2,0.0,0.0,3.9,11,124,1.0,96,269,0.31,4.9,0,0,0.09,0.23,5.0,0,100],
+  ["FR031","Sapi hati segar","Daging",69.7,132,19.7,3.2,6.0,0.0,1.4,7,358,6.6,110,213,0.51,2.3,13303,355,0.26,1.52,11.4,31,100],
+  ["FR007","Ayam hati segar","Daging",53.4,261,27.4,16.1,1.6,0.0,1.5,118,373,15.8,1068,23,0.84,0.0,4957,28000,0.64,4.38,4.1,0,100],
+  ["FP021","Ayam goreng dada","Daging",42.2,338,35.2,20.6,0.4,0.0,1.5,79,221,5.6,800,370,0.16,1.1,16,80,0.52,0.16,12.1,0,100],
+  ["FP062","Rendang sapi","Daging",57.9,193,22.6,7.9,7.8,0.0,3.8,474,211,14.9,21,534,0.12,0,0,0,0.12,0.0,0,0,100],
+  // IKAN & SEAFOOD
+  ["GR039","Ikan layang segar","Ikan",74.0,109,22.0,1.7,0.0,0.0,2.3,50,150,2.0,45,0,0.05,0,0,0,0.05,0,0,0,80],
+  ["GR007","Ikan bandeng segar","Ikan",74.0,123,20.0,4.8,0.0,0.0,1.2,20,150,2.0,67,271,0.00,0.9,45,21,0.05,0.10,6.0,0,57],
+  ["GR046","Ikan mas segar","Ikan",80.0,86,16.0,2.0,0.0,0.0,2.0,20,150,2.0,65,277,0.10,1.1,45,8,0.05,0.10,2.6,0,80],
+  ["GR048","Ikan mujahir segar","Ikan",79.7,89,18.7,1.0,0.0,0.0,1.1,96,209,1.5,51,266,0.00,0.2,6,3,0.03,0.10,2.0,0,80],
+  ["GR030","Ikan kakap segar","Ikan",77.0,92,20.0,0.7,0.0,0.0,2.3,20,200,1.0,9,0,0.05,0,0,0,0.05,0,0,0,66],
+  ["GR084","Udang segar","Ikan",75.0,91,21.0,0.2,0.1,0.0,3.7,136,170,8.0,178,222,0.30,1.3,18,4,0.01,0.4,3.7,0,68],
+  ["GR003","Cumi-cumi segar","Ikan",82.2,75,16.1,0.7,0.1,0.0,0.9,32,200,1.8,37,204,1.60,1.3,0,20,0.08,0.00,2.5,0,74],
+  ["GR068","Ikan teri segar","Ikan",80.0,74,10.3,1.4,4.1,0.0,4.2,972,253,3.9,554,126,305,0.2,13,0,0.24,0.10,1.9,0,100],
+  ["GP042","Ikan teri kering","Ikan",37.8,170,33.4,3.0,0.0,0.0,25.8,1200,1500,3.6,64,0,0.15,0,0,0,0.15,0,0,0,100],
+  ["GP004","Ikan asin kering","Ikan",40.0,193,42.0,1.5,0.0,0.0,16.5,200,300,0.0,0,0,0.01,0,0,0,0.01,0,0,0,70],
+  ["GR070","Ikan tongkol segar","Ikan",74.7,100,13.7,1.5,8.0,0.0,2.1,92,606,1.7,202,227,0.20,1.6,181,0,0.35,0.03,6.6,0,100],
+  ["GR019","Ikan cakalang segar","Ikan",73.0,107,19.6,0.7,5.5,0.0,1.2,23,242,2.9,66,239,0.20,0.6,386,0,0.17,0.05,21.7,0,100],
+  // TELUR
+  ["HR001","Telur ayam kampung","Telur",73.1,174,10.8,14.0,1.2,0.0,0.9,68,268,4.9,190,141,0.60,1.5,203,23,0.78,0.62,0.2,0,87],
+  ["HR002","Telur ayam ras","Telur",74.3,154,12.4,10.8,0.7,0.0,0.8,86,258,3.0,142,119,0.16,1.0,61,22,0.12,0.38,0.2,0,89],
+  ["HR008","Telur bebek tambak","Telur",67.7,187,10.9,12.4,7.9,0.0,1.1,64,295,5.4,209,146,0.40,1.8,378,471,1.62,0.03,0.1,0,90],
+  ["HP002","Telur bebek asin","Telur",66.5,179,13.6,13.3,4.4,0.0,2.2,120,157,1.8,483,140,0.28,0.98,253,13,0.28,0.98,0.6,0,83],
+  // SUSU
+  ["JR006","Susu sapi segar","Susu",88.3,61,3.2,3.5,4.3,0.0,0.7,143,60,1.7,36,149,0.02,0.3,39,12,0.03,0.18,0.2,1,100],
+  ["JP006","Susu bubuk","Susu",3.5,513,24.6,30.0,36.2,0.0,5.7,904,694,0.6,380,1330,0.02,4.1,476,118,0.29,1.39,1.6,6,100],
+  ["JP007","Susu kental manis","Susu",25.0,343,8.2,10.0,55.0,0.0,1.8,275,209,0.2,150,320,0.02,1.0,155,46,0.05,0.43,0.4,1,100],
+  ["JP011","Yoghurt segar","Susu",88.0,52,3.3,2.5,4.0,0.0,2.2,120,90,0.1,40,299,0.01,0.6,22,10,0.04,0.10,0.2,0,100],
+  ["JR002","ASI","Susu",88.1,62,1.5,3.2,7.0,0.0,0.2,34,20,0.2,15,41,0.01,0.4,7,0,0.01,0.03,0.2,0,100],
+  // LEMAK & MINYAK
+  ["KR011","Minyak kelapa","Lemak",0.0,870,1.0,98.0,0.0,0.0,1.0,0,0,0.0,0,0,0.00,0.0,0,0,0.00,0.00,0.0,0,100],
+  ["KP003","Santan dengan air","Lemak",80.0,122,2.0,10.0,7.6,1.4,0.4,25,30,0.1,9,162,0.16,0.4,0,0,0.02,0.00,0.5,2,100],
+  ["KP004","Santan murni","Lemak",54.9,324,4.2,34.3,5.6,0.0,1.0,14,45,1.9,18,514,0.37,0.9,0,0,0.02,0.00,0.5,2,100],
+  ["KP002","Mentega","Lemak",16.0,742,0.5,81.6,1.4,0.0,1.9,15,16,1.1,653,103,0.00,0.4,1000,155,0.00,0.10,0.0,0,100],
+  ["KP001","Margarin","Lemak",15.5,720,0.6,81.0,0.4,0.0,2.5,20,16,0.0,760,26,0.00,0.0,606,633,0.00,0.00,0.0,0,100],
+  // GULA
+  ["MP007","Gula putih","Gula",5.4,394,0.0,0.0,94.0,0.0,0.6,5,1,0.1,1,5,0.00,0.0,0,0,0.00,0.00,0.0,0,100],
+  ["MP005","Gula aren","Gula",7.0,368,0.0,0.0,92.0,0.0,1.0,75,35,3.0,15,390,0.04,26.4,0,0,0.00,0.01,0.5,0,100],
+  ["MP010","Madu","Gula",20.0,294,0.3,0.0,79.5,0.2,0.2,5,16,0.9,6,27,0.04,0.2,0,0,0.00,0.04,0.1,4,100],
+  // BUMBU
+  ["DR007","Bawang bombay segar","Bumbu",87.5,43,1.4,0.2,10.3,2.0,0.6,32,44,0.5,12,10,0.10,0.3,788,50,0.03,0.21,0.4,9,94],
+];
+
+// Index: [0]kode,[1]nama,[2]kat,[3]air,[4]energi,[5]protein,[6]lemak,[7]kh,[8]serat,[9]abu,[10]kalsium,[11]fosfor,[12]besi,[13]natrium,[14]kalium,[15]tembaga,[16]seng,[17]retinol,[18]bkaroten,[19]thia,[20]ribo,[21]niasin,[22]vitc,[23]bdd
+
+const FIELDS = {energi:4,protein:5,lemak:6,kh:7,serat:8,kalsium:10,fosfor:11,besi:12,natrium:13,kalium:14,seng:16,vitc:22};
+const AKG = {energi:2150,protein:60,lemak:72,kh:300,serat:30,besi:26,kalsium:1000,vitc:75};
+
+let selectedFoods = []; // [{data, gram}]
+
+function searchFood(q) {
+  const list = document.getElementById('foodList');
+  if(!q || q.length < 2) { list.innerHTML = '<div class="no-results">Ketik min. 2 huruf untuk mencari</div>'; return; }
+  const ql = q.toLowerCase();
+  const results = TKPI_DB.filter(f => f[1].toLowerCase().includes(ql) || f[2].toLowerCase().includes(ql)).slice(0, 40);
+  if(!results.length) { list.innerHTML = '<div class="no-results">Tidak ditemukan di database TKPI</div>'; return; }
+  list.innerHTML = results.map(f => `
+    <div class="food-item" onclick="addFood('${f[0]}')">
+      <span class="food-name">${f[1]}</span>
+      <span class="food-cat">${f[2]}</span>
+      <span class="food-kal">${f[4]} kkal</span>
+    </div>`).join('');
+}
+
+function addFood(kode) {
+  if(selectedFoods.find(s => s.data[0] === kode)) return; // already added
+  const food = TKPI_DB.find(f => f[0] === kode);
+  if(!food) return;
+  selectedFoods.push({data: food, gram: 100});
+  renderSelected();
+  calcTotals();
+}
+
+function removeFood(kode) {
+  selectedFoods = selectedFoods.filter(s => s.data[0] !== kode);
+  renderSelected();
+  calcTotals();
+}
+
+function updateGram(kode, val) {
+  const sf = selectedFoods.find(s => s.data[0] === kode);
+  if(sf) sf.gram = parseFloat(val) || 0;
+  calcTotals();
+  updateMacroRow(kode);
+}
+
+function getMacros(food, gram) {
+  const r = gram / 100;
+  return {
+    energi: +(food[4] * r).toFixed(1),
+    protein: +(food[5] * r).toFixed(1),
+    lemak: +(food[6] * r).toFixed(1),
+    kh: +(food[7] * r).toFixed(1),
+    serat: +(food[8] * r).toFixed(1),
+    besi: +(food[12] * r).toFixed(1),
+  };
+}
+
+function updateMacroRow(kode) {
+  const sf = selectedFoods.find(s => s.data[0] === kode);
+  if(!sf) return;
+  const m = getMacros(sf.data, sf.gram);
+  const row = document.getElementById('macro-' + kode);
+  if(row) row.innerHTML = `
+    <span class="macro-pill energy">${m.energi} kkal</span>
+    <span class="macro-pill protein">P: ${m.protein}g</span>
+    <span class="macro-pill lemak">L: ${m.lemak}g</span>
+    <span class="macro-pill karbo">KH: ${m.kh}g</span>
+    <span class="macro-pill">Serat: ${m.serat}g</span>`;
+}
+
+function renderSelected() {
+  const container = document.getElementById('selectedFoods');
+  document.getElementById('selectedCount').textContent = selectedFoods.length;
+  if(!selectedFoods.length) {
+    container.innerHTML = '<div class="no-results" id="emptySelected">Belum ada bahan. Cari dan klik bahan di atas.</div>';
+    return;
+  }
+  container.innerHTML = selectedFoods.map(sf => {
+    const m = getMacros(sf.data, sf.gram);
+    return `<div class="selected-food-row">
+      <div class="sfr-top">
+        <div class="sfr-name">${sf.data[1]}</div>
+        <div class="sfr-remove" onclick="removeFood('${sf.data[0]}')">✕</div>
+      </div>
+      <div class="sfr-gram">
+        <input type="number" class="gram-input" value="${sf.gram}" min="0" step="5" oninput="updateGram('${sf.data[0]}', this.value)">
+        <div class="gram-label">gram (BDD ${sf.data[23]}%)</div>
+      </div>
+      <div class="sfr-macros" id="macro-${sf.data[0]}">
+        <span class="macro-pill energy">${m.energi} kkal</span>
+        <span class="macro-pill protein">P: ${m.protein}g</span>
+        <span class="macro-pill lemak">L: ${m.lemak}g</span>
+        <span class="macro-pill karbo">KH: ${m.kh}g</span>
+        <span class="macro-pill">Serat: ${m.serat}g</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function calcTotals() {
+  const totals = {energi:0,protein:0,lemak:0,kh:0,serat:0,kalsium:0,fosfor:0,besi:0,natrium:0,kalium:0,seng:0,vitc:0};
+  selectedFoods.forEach(sf => {
+    const r = sf.gram / 100;
+    Object.keys(FIELDS).forEach(k => { totals[k] += (sf.data[FIELDS[k]] || 0) * r; });
+  });
+  Object.keys(totals).forEach(k => { totals[k] = +totals[k].toFixed(1); });
+
+  // update display
+  document.getElementById('tot-energi').textContent = totals.energi;
+  document.getElementById('tot-protein').textContent = totals.protein;
+  document.getElementById('tot-lemak').textContent = totals.lemak;
+  document.getElementById('tot-karbo').textContent = totals.kh;
+  document.getElementById('tot-serat').textContent = totals.serat;
+  document.getElementById('tot-besi').textContent = totals.besi;
+  document.getElementById('tot-kalsium').textContent = totals.kalsium;
+  document.getElementById('tot-fosfor').textContent = totals.fosfor;
+  document.getElementById('tot-natrium').textContent = totals.natrium;
+  document.getElementById('tot-kalium').textContent = totals.kalium;
+  document.getElementById('tot-seng').textContent = totals.seng;
+  document.getElementById('tot-vitc').textContent = totals.vitc;
+
+  // AKG bars
+  const akg = [
+    ['energi','bar-energi','pct-energi',AKG.energi],
+    ['protein','bar-protein','pct-protein',AKG.protein],
+    ['lemak','bar-lemak','pct-lemak',AKG.lemak],
+    ['kh','bar-karbo','pct-karbo',AKG.kh],
+    ['serat','bar-serat','pct-serat',AKG.serat],
+    ['besi','bar-besi','pct-besi',AKG.besi],
+    ['kalsium','bar-kalsium','pct-kalsium',AKG.kalsium],
+    ['vitc','bar-vitc','pct-vitc',AKG.vitc],
+  ];
+  akg.forEach(([k, barId, pctId, ref]) => {
+    const pct = Math.min(Math.round((totals[k] / ref) * 100), 150);
+    document.getElementById(barId).style.width = Math.min(pct, 100) + '%';
+    document.getElementById(pctId).textContent = pct + '%';
+  });
+}
+
+function exportData() {
+  if(!selectedFoods.length) { alert('Belum ada bahan dipilih'); return; }
+  const header = 'Nama Bahan,Kategori,Gram,Energi (kkal),Protein (g),Lemak (g),Karbohidrat (g),Serat (g),Kalsium (mg),Fosfor (mg),Besi (mg),Natrium (mg),Kalium (mg),Seng (mg),Vit C (mg),BDD (%)';
+  const rows = selectedFoods.map(sf => {
+    const r = sf.gram / 100;
+    return [
+      `"${sf.data[1]}"`, sf.data[2], sf.gram,
+      +(sf.data[4]*r).toFixed(1), +(sf.data[5]*r).toFixed(1), +(sf.data[6]*r).toFixed(1), +(sf.data[7]*r).toFixed(1), +(sf.data[8]*r).toFixed(1),
+      +(sf.data[10]*r).toFixed(1), +(sf.data[11]*r).toFixed(1), +(sf.data[12]*r).toFixed(1), +(sf.data[13]*r).toFixed(1), +(sf.data[14]*r).toFixed(1), +(sf.data[16]*r).toFixed(1), +(sf.data[22]*r).toFixed(1),
+      sf.data[23]
+    ].join(',');
+  });
+  // totals row
+  const t = {energi:0,protein:0,lemak:0,kh:0,serat:0,kalsium:0,fosfor:0,besi:0,natrium:0,kalium:0,seng:0,vitc:0};
+  selectedFoods.forEach(sf => {
+    const r = sf.gram/100;
+    t.energi+=sf.data[4]*r; t.protein+=sf.data[5]*r; t.lemak+=sf.data[6]*r; t.kh+=sf.data[7]*r; t.serat+=sf.data[8]*r;
+    t.kalsium+=sf.data[10]*r; t.fosfor+=sf.data[11]*r; t.besi+=sf.data[12]*r; t.natrium+=sf.data[13]*r; t.kalium+=sf.data[14]*r; t.seng+=sf.data[16]*r; t.vitc+=sf.data[22]*r;
+  });
+  rows.push(`"TOTAL",,${selectedFoods.reduce((a,s)=>a+s.gram,0)},${+t.energi.toFixed(1)},${+t.protein.toFixed(1)},${+t.lemak.toFixed(1)},${+t.kh.toFixed(1)},${+t.serat.toFixed(1)},${+t.kalsium.toFixed(1)},${+t.fosfor.toFixed(1)},${+t.besi.toFixed(1)},${+t.natrium.toFixed(1)},${+t.kalium.toFixed(1)},${+t.seng.toFixed(1)},${+t.vitc.toFixed(1)},`);
+
+  const csv = [header, ...rows].join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'tkpi_kalkulator.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
