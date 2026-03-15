@@ -25,6 +25,59 @@
   body::before { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E"); pointer-events:none; z-index:0; }
   .container { max-width: 960px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
 
+  /* ==================== PASSWORD SCREEN ==================== */
+  #passwordScreen {
+    position: fixed; inset: 0; background: var(--bg); z-index: 999;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 0;
+  }
+  #passwordScreen::before {
+    content:''; position:fixed; inset:0;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events:none; z-index:0;
+  }
+  .pw-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 48px 40px; max-width: 400px; width: 90%; text-align: center;
+    position: relative; z-index: 1;
+    animation: fadeInUp 0.5s ease;
+  }
+  @keyframes fadeInUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  .pw-icon { font-size: 40px; margin-bottom: 20px; }
+  .pw-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+  .pw-subtitle { font-family: var(--mono); font-size: 11px; color: var(--text-dim); margin-bottom: 28px; line-height: 1.6; }
+  .pw-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--mono); font-size: 14px;
+    padding: 12px 16px; border-radius: 8px; outline: none;
+    text-align: center; letter-spacing: 3px; transition: border-color .2s;
+    margin-bottom: 12px;
+  }
+  .pw-input:focus { border-color: var(--green); }
+  .pw-input::placeholder { letter-spacing: 0; color: var(--text-dim); font-size: 12px; }
+  .pw-btn {
+    width: 100%; font-family:'Syne',sans-serif; font-weight:700; font-size:13px;
+    letter-spacing:1px; text-transform:uppercase; padding:13px;
+    background: var(--green); color: #0a0f0a; border: none; border-radius: 8px;
+    cursor: pointer; transition: all .2s;
+  }
+  .pw-btn:hover { background: #86efac; transform: translateY(-1px); }
+  .pw-error {
+    font-family: var(--mono); font-size: 11px; color: var(--red);
+    margin-top: 10px; height: 16px; transition: opacity .2s;
+  }
+  .pw-footer {
+    font-family: var(--mono); font-size: 10px; color: var(--text-dim);
+    margin-top: 20px; text-align: center;
+  }
+  .pw-shake { animation: shake 0.4s ease; }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)}
+    40%{transform:translateX(8px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)}
+  }
+  .fade-out { animation: fadeOut 0.4s ease forwards; }
+  @keyframes fadeOut { to{opacity:0;pointer-events:none} }
+
   /* NAV TABS */
   .tab-nav { display: flex; gap: 4px; padding: 32px 0 0; border-bottom: 1px solid var(--border); }
   .tab-btn { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 12px 24px; border: 1px solid transparent; border-bottom: none; border-radius: 6px 6px 0 0; cursor: pointer; background: transparent; color: var(--text-dim); transition: all 0.2s; }
@@ -121,7 +174,6 @@
   .food-item .food-cat { color:#4b7a4b; font-size:9px; text-transform:uppercase; letter-spacing:1px; }
   .no-results { font-family:var(--mono); font-size:11px; color:var(--text-dim); padding:16px 12px; text-align:center; }
 
-  /* Selected foods */
   .selected-foods { display:flex; flex-direction:column; gap:10px; }
   .selected-food-row { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:10px 14px; }
   .sfr-top { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
@@ -139,7 +191,6 @@
   .macro-pill.lemak { border-color:#1e3a5f; color:var(--blue); }
   .macro-pill.karbo { border-color:#4a1d96; color:#c4b5fd; }
 
-  /* Totals */
   .totals-section { margin-top:16px; }
   .totals-title { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; color:var(--text); margin-bottom:12px; }
   .total-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
@@ -171,30 +222,65 @@
 
   .export-btn { margin-top:14px; width:100%; }
 
-  footer { padding:20px 0 40px; border-top:1px solid var(--border); font-family:var(--mono); font-size:11px; color:var(--text-dim); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-top:4px; }
+  /* FOOTER */
+  footer {
+    padding: 24px 0 40px; border-top: 1px solid var(--border);
+    font-family: var(--mono); font-size: 11px; color: var(--text-dim);
+    display: flex; justify-content: space-between; flex-wrap: wrap;
+    gap: 10px; margin-top: 4px; align-items: center;
+  }
+  .footer-left { display: flex; flex-direction: column; gap: 4px; }
+  .footer-credit {
+    font-family: var(--mono); font-size: 11px; color: var(--text-dim);
+  }
+  .footer-credit span {
+    color: var(--green); font-weight: 500;
+  }
+  .footer-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 100px; padding: 3px 10px;
+    font-size: 10px; color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .footer-badge::before {
+    content: ''; width: 6px; height: 6px; background: var(--green);
+    border-radius: 50%; display: inline-block;
+  }
 </style>
 </head>
 <body>
-<div class="container">
 
-  <!-- TAB NAV -->
+<!-- ==================== PASSWORD SCREEN ==================== -->
+<div id="passwordScreen">
+  <div class="pw-card">
+    <div class="pw-icon">🌿</div>
+    <div class="pw-title">GiziCheck AI</div>
+    <div class="pw-subtitle">Asisten Konsultasi Gizi & Kalkulator TKPI 2020<br>Masukkan password untuk mengakses</div>
+    <input type="password" class="pw-input" id="pwInput" placeholder="Masukkan password..." onkeydown="if(event.key==='Enter')checkPassword()">
+    <button class="pw-btn" onclick="checkPassword()">Masuk →</button>
+    <div class="pw-error" id="pwError"></div>
+    <div class="pw-footer">NutriAI · Dibuat oleh <span style="color:var(--green)">Riel</span> · TKPI 2020</div>
+  </div>
+</div>
+
+<!-- ==================== MAIN APP ==================== -->
+<div class="container" id="mainApp" style="display:none">
+
   <div class="tab-nav">
     <button class="tab-btn active" onclick="switchTab('chat')">💬 Konsultasi Gizi</button>
     <button class="tab-btn" onclick="switchTab('tkpi')">🥦 Kalkulator TKPI</button>
   </div>
 
-  <!-- ============================================================ -->
-  <!-- TAB 1: CHATBOT KONSULTASI GIZI -->
-  <!-- ============================================================ -->
+  <!-- TAB 1: CHATBOT -->
   <div id="tab-chat" class="tab-panel active">
     <div class="panel-header">
-      <div class="header-tag">GiziCheck AI · Made by Riel and Anthropic · Powered by groc</div>
+      <div class="header-tag">GiziCheck AI · TKPI 2020 · Evidence-based</div>
       <h1>Asisten Gizi<br><span>Mahasiswa</span></h1>
       <p class="subtitle">Tanya apa saja soal gizi, nutrisi, tugas kuliah, kasus klinis, sampai kebijakan pangan · Berbasis evidence-based nutrition science</p>
     </div>
 
     <div class="chat-wrapper">
-      <!-- Quick chips -->
       <div class="quick-chips" id="quickChips">
         <button class="q-chip" onclick="sendQuick('Jelaskan konsep 1000 Hari Pertama Kehidupan dan dampaknya terhadap stunting')">1000 HPK & stunting</button>
         <button class="q-chip" onclick="sendQuick('Apa perbedaan malnutrisi, undernutrisi, dan hidden hunger? Jelaskan dengan contoh')">Malnutrisi vs undernutrisi</button>
@@ -206,7 +292,6 @@
         <button class="q-chip" onclick="sendQuick('Bagaimana diet pada pasien diabetes mellitus tipe 2? Prinsip 3J itu apa?')">Diet DM tipe 2 & 3J</button>
       </div>
 
-      <!-- Messages -->
       <div class="chat-messages" id="chatMessages">
         <div class="msg ai">
           <div class="msg-avatar">🌿</div>
@@ -214,12 +299,11 @@
             <div class="msg-bubble">
               Halo! Gw asisten gizi berbasis AI, siap bantu lo dengan materi kuliah gizi, kasus klinis, perhitungan nutrisi, sampai kebijakan pangan Indonesia. Tanya aja langsung atau klik salah satu topik di atas buat mulai! 🎓
             </div>
-            <div class="chat-meta">NutriAI · siap membantu</div>
+            <div class="chat-meta">GiziCheck AI · siap membantu</div>
           </div>
         </div>
       </div>
 
-      <!-- Input -->
       <div id="chatErrorBox"></div>
       <div class="chat-input-area">
         <textarea class="chat-input" id="chatInput" placeholder="Tanya soal gizi, nutrisi, tugas, kasus klinis..." rows="1"></textarea>
@@ -229,9 +313,7 @@
     </div>
   </div>
 
-  <!-- ============================================================ -->
-  <!-- TAB 2: TKPI CALCULATOR -->
-  <!-- ============================================================ -->
+  <!-- TAB 2: TKPI -->
   <div id="tab-tkpi" class="tab-panel">
     <div class="panel-header">
       <div class="header-tag">TKPI 2020 · Kementerian Kesehatan RI</div>
@@ -240,7 +322,6 @@
     </div>
 
     <div class="tkpi-layout">
-      <!-- LEFT: Search & Select -->
       <div>
         <div class="tkpi-panel">
           <div class="tkpi-panel-header">🔍 Cari Bahan Pangan</div>
@@ -262,38 +343,18 @@
         </div>
       </div>
 
-      <!-- RIGHT: Totals -->
       <div>
         <div class="tkpi-panel">
           <div class="tkpi-panel-header">📊 Total Zat Gizi</div>
           <div class="tkpi-panel-body">
             <div class="total-grid">
-              <div class="total-item">
-                <div class="total-item-label">Energi</div>
-                <div><span class="total-item-val val-energy" id="tot-energi">0</span><span class="total-item-unit">kkal</span></div>
-              </div>
-              <div class="total-item">
-                <div class="total-item-label">Protein</div>
-                <div><span class="total-item-val val-protein" id="tot-protein">0</span><span class="total-item-unit">g</span></div>
-              </div>
-              <div class="total-item">
-                <div class="total-item-label">Lemak</div>
-                <div><span class="total-item-val val-lemak" id="tot-lemak">0</span><span class="total-item-unit">g</span></div>
-              </div>
-              <div class="total-item">
-                <div class="total-item-label">Karbohidrat</div>
-                <div><span class="total-item-val val-karbo" id="tot-karbo">0</span><span class="total-item-unit">g</span></div>
-              </div>
-              <div class="total-item">
-                <div class="total-item-label">Serat</div>
-                <div><span class="total-item-val val-serat" id="tot-serat">0</span><span class="total-item-unit">g</span></div>
-              </div>
-              <div class="total-item">
-                <div class="total-item-label">Besi (Fe)</div>
-                <div><span class="total-item-val val-besi" id="tot-besi">0</span><span class="total-item-unit">mg</span></div>
-              </div>
+              <div class="total-item"><div class="total-item-label">Energi</div><div><span class="total-item-val val-energy" id="tot-energi">0</span><span class="total-item-unit">kkal</span></div></div>
+              <div class="total-item"><div class="total-item-label">Protein</div><div><span class="total-item-val val-protein" id="tot-protein">0</span><span class="total-item-unit">g</span></div></div>
+              <div class="total-item"><div class="total-item-label">Lemak</div><div><span class="total-item-val val-lemak" id="tot-lemak">0</span><span class="total-item-unit">g</span></div></div>
+              <div class="total-item"><div class="total-item-label">Karbohidrat</div><div><span class="total-item-val val-karbo" id="tot-karbo">0</span><span class="total-item-unit">g</span></div></div>
+              <div class="total-item"><div class="total-item-label">Serat</div><div><span class="total-item-val val-serat" id="tot-serat">0</span><span class="total-item-unit">g</span></div></div>
+              <div class="total-item"><div class="total-item-label">Besi (Fe)</div><div><span class="total-item-val val-besi" id="tot-besi">0</span><span class="total-item-unit">mg</span></div></div>
             </div>
-
             <div class="mineral-grid">
               <div class="mineral-item"><div class="mineral-name">Ca</div><div class="mineral-val" id="tot-kalsium">0</div><div class="mineral-unit">mg</div></div>
               <div class="mineral-item"><div class="mineral-name">P</div><div class="mineral-val" id="tot-fosfor">0</div><div class="mineral-unit">mg</div></div>
@@ -327,12 +388,41 @@
   </div>
 
   <footer>
-    <span>NutriAI · TKPI 2020 · Indonesia</span>
+    <div class="footer-left">
+      <div class="footer-credit">Dibuat oleh <span>Riel</span> · GiziCheck AI · TKPI 2020</div>
+      <div class="footer-badge">Powered by Groq · Llama 3.3 70B</div>
+    </div>
     <span>Evidence-based nutrition science</span>
   </footer>
 </div>
 
 <script>
+// ================================================================
+// PASSWORD
+// ================================================================
+const PASSWORD = "gizi2024"; // <-- GANTI PASSWORD DI SINI
+
+function checkPassword() {
+  const input = document.getElementById('pwInput').value;
+  const errEl = document.getElementById('pwError');
+  const card = document.querySelector('.pw-card');
+
+  if (input === PASSWORD) {
+    document.getElementById('passwordScreen').classList.add('fade-out');
+    setTimeout(() => {
+      document.getElementById('passwordScreen').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'block';
+    }, 400);
+  } else {
+    errEl.textContent = '⚠ Password salah. Coba lagi.';
+    card.classList.remove('pw-shake');
+    void card.offsetWidth; // trigger reflow
+    card.classList.add('pw-shake');
+    document.getElementById('pwInput').value = '';
+    setTimeout(() => errEl.textContent = '', 2000);
+  }
+}
+
 // ================================================================
 // TAB SWITCHING
 // ================================================================
@@ -344,7 +434,7 @@ function switchTab(tab) {
 }
 
 // ================================================================
-// CHATBOT KONSULTASI GIZI
+// CHATBOT
 // ================================================================
 const SYSTEM_PROMPT = `Kamu adalah asisten konsultasi gizi bernama GiziCheck AI, dirancang khusus untuk membantu mahasiswa gizi Indonesia. Kamu berbicara dalam Bahasa Indonesia yang santai tapi tetap ilmiah dan akurat.
 
@@ -358,12 +448,13 @@ Keahlianmu mencakup:
 - Kebijakan gizi Indonesia: MBG, PMT, Posyandu, AKG Permenkes 2019
 - TKPI 2020: tabel komposisi pangan Indonesia
 
+Web ini dibuat oleh Riel, mahasiswa gizi yang ingin membantu teman-temannya belajar gizi lebih mudah.
+
 Format jawaban:
 - Untuk pertanyaan panjang/kompleks: gunakan struktur yang jelas dengan **bold** untuk poin penting, dan - untuk list
 - Untuk soal hitungan: tampilkan langkah-langkah dengan jelas
 - Untuk kasus klinis: berikan analisis sistematis
-- Selalu sebutkan sumber/referensi standar bila relevan (WHO, Kemenkes, PERSAGI)
-- Jawab sejelas dan seakurat mungkin, kamu adalah tutor mahasiswa gizi yang andal`;
+- Selalu sebutkan sumber/referensi standar bila relevan (WHO, Kemenkes, PERSAGI)`;
 
 let chatHistory = [];
 
@@ -409,7 +500,6 @@ async function sendChat() {
   const text = input.value.trim();
   if(!text || btn.disabled) return;
 
-  // Hide quick chips after first message
   document.getElementById('quickChips').style.display = 'none';
   document.getElementById('chatErrorBox').innerHTML = '';
 
@@ -419,16 +509,13 @@ async function sendChat() {
   input.style.height = 'auto';
   btn.disabled = true;
 
-  const typing = appendMsg('ai', '', true);
+  appendMsg('ai', '', true);
 
   try {
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({
-        system: SYSTEM_PROMPT,
-        messages: chatHistory
-      })
+      body: JSON.stringify({ system: SYSTEM_PROMPT, messages: chatHistory })
     });
     if(!res.ok) throw new Error('API ' + res.status);
     const data = await res.json();
@@ -464,7 +551,6 @@ function clearChat() {
   document.getElementById('chatErrorBox').innerHTML = '';
 }
 
-// Auto-resize textarea
 document.addEventListener('DOMContentLoaded', () => {
   const inp = document.getElementById('chatInput');
   if(inp) {
@@ -479,11 +565,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ================================================================
-// TKPI DATABASE (dari TKPI 2020 Kemenkes RI)
-// Format: [kode, nama, kategori, air, energi, protein, lemak, kh, serat, abu, kalsium, fosfor, besi, natrium, kalium, tembaga, seng, retinol, bkaroten, thia, ribo, niasin, vitc, bdd]
+// TKPI DATABASE
 // ================================================================
 const TKPI_DB = [
-  // SEREALIA
   ["AR001","Beras giling mentah","Serealia",12.0,357,8.4,1.7,77.1,0.2,0.8,147,81,1.8,27,71,0.10,0.5,0,0,0.20,0.08,2.6,0,100],
   ["AP001","Nasi","Serealia",56.7,180,3.0,0.3,39.8,0.2,0.2,25,27,0.4,1,38,0.10,0.6,0,0,0.05,0.10,2.6,0,100],
   ["AP002","Nasi tim","Serealia",71.0,120,2.4,0.4,26.0,0.5,0.2,3,7,0.4,0,24,0.10,0.4,0,0,0.10,0.00,1.4,0,100],
@@ -497,7 +581,6 @@ const TKPI_DB = [
   ["AP029","Biskuit","Serealia",2.2,458,6.9,14.4,75.1,2.1,1.4,62,87,2.7,241,20,0.16,0.6,0,14,0.09,0.15,1.4,0,100],
   ["AR004","Beras hitam mentah","Serealia",12.9,351,8.0,1.3,76.9,20.1,0.9,6,198,0.1,15,105,0.10,1.6,0,0,0.21,0.06,0.0,0,100],
   ["AP020","Makaroni mentah","Serealia",11.7,353,8.7,0.4,78.7,4.9,2.5,20,80,0.3,5,0,0.28,1.4,0,0,0.10,0.13,2.2,0,100],
-  // UMBI
   ["BR016","Singkong segar","Umbi",61.4,154,1.0,0.3,36.8,0.9,0.5,77,24,1.1,39,94,0.30,0.4,0,0,0.06,0.10,0.5,31,85],
   ["BR025","Talas bogor segar","Umbi",72.4,108,1.4,0.4,25.0,0.9,0.8,47,67,0.7,10,448,0.20,0.7,0,0,0.06,0.07,1.0,4,85],
   ["BR013","Kentang segar","Umbi",83.4,62,2.1,0.2,13.5,0.5,0.6,63,58,0.7,73,96,0.40,0.3,0,0,0.09,0.10,1.0,21,85],
@@ -506,7 +589,6 @@ const TKPI_DB = [
   ["BR031","Ubi jalar putih","Umbi",77.8,88,0.4,0.4,20.6,4.0,0.8,30,10,0.5,2,4,0.10,0.2,0,13,0.25,0.06,0.5,36,86],
   ["BP008","Singkong kukus","Umbi",61.5,153,1.2,0.3,36.4,1.3,0.6,56,22,0.4,2,345,0.30,0.1,0,0,0.00,0.00,0.3,20,100],
   ["BP063","Tapai singkong","Umbi",57.4,169,1.4,0.3,40.2,2.0,0.7,21,34,0.8,0,0,0.00,0,0,0,0.00,0.00,0,9,100],
-  // KACANG
   ["CR017","Kacang kedelai kering","Kacang",12.7,381,40.4,16.7,24.9,3.2,5.5,222,682,10.0,210,713,1.58,3.9,237,31,0.52,0.12,1.2,0,100],
   ["CR014","Kacang hijau kering","Kacang",15.5,323,22.9,1.5,56.8,7.5,3.3,223,319,7.5,42,816,1.90,2.9,156,223,0.46,0.15,1.5,10,100],
   ["CR026","Kacang merah kering","Kacang",17.7,314,22.1,1.1,56.2,4.0,2.9,50,2429,10.3,11,1266,0.65,2.6,129,0,0.40,0.72,2.2,100,100],
@@ -518,7 +600,6 @@ const TKPI_DB = [
   ["CP060","Susu kedelai","Kacang",87.0,41,3.5,2.5,5.0,0.2,2.0,50,45,0.7,128,288,0.12,1.0,200,0,0.08,0.05,0.7,2,100],
   ["CR030","Kacang tanah sangan","Kacang",1.2,560,29.5,43.0,24.1,2.9,2.2,107,366,4.1,34,510,1.69,2.1,0,0,0.31,0.30,15.5,0,100],
   ["CP005","Kacang hijau rebus","Kacang",71.3,109,8.7,0.5,18.3,1.5,1.2,95,149,1.5,447,658,1.40,2.8,18,120,0.12,0.04,0.4,3,100],
-  // SAYURAN
   ["DR008","Bayam segar","Sayuran",94.5,16,0.9,0.4,2.9,0.7,1.3,166,76,3.5,16,456,0.13,0.4,2699,2293,0.04,0.10,1.0,41,71],
   ["DR100","Kangkung segar","Sayuran",91.0,28,3.4,0.7,3.9,2.0,1.0,67,54,2.3,65,250,0.13,0.4,2868,5542,0.07,0.36,2.0,17,60],
   ["DR141","Sawi segar","Sayuran",92.2,28,2.3,0.3,4.0,2.5,1.2,220,38,2.9,22,437,0.12,0.2,2042,6460,0.09,0.23,0.7,102,87],
@@ -535,7 +616,6 @@ const TKPI_DB = [
   ["DR035","Daun katuk segar","Sayuran",81.0,59,6.4,1.0,9.9,1.5,1.7,233,98,3.5,21,479,0.30,1.3,9152,10020,0.00,0.31,2.3,164,40],
   ["DP001","Bayam kukus","Sayuran",90.7,30,1.3,0.7,5.8,1.2,1.6,239,35,5.7,15,431,0.10,0.3,0,2699,0.02,0.10,0.9,32,100],
   ["DP008","Daun singkong rebus","Sayuran",90.5,31,3.7,0.6,4.8,1.6,0.4,160,50,2.6,13,14,0.10,2.0,3897,4150,0.02,0.10,1.7,34,100],
-  // BUAH
   ["ER073","Pepaya segar","Buah",87.0,46,0.5,0.1,12.2,1.6,0.6,23,12,1.7,4,221,0.02,0.3,1038,365,0.04,0.06,0.4,78,75],
   ["ER054","Mangga segar","Buah",87.0,52,0.7,0.0,12.3,1.6,0.2,20,16,1.0,3,140,0.33,0.0,316,0,0.03,0.01,0.3,12,65],
   ["ER089","Pisang raja segar","Buah",66.0,120,1.2,0.2,31.8,5.3,1.0,10,22,0.8,35,582,0.31,0.7,53,950,0.06,0.14,1.2,10,70],
@@ -549,7 +629,6 @@ const TKPI_DB = [
   ["ER001","Alpukat segar","Buah",84.0,85,0.9,6.5,7.7,0.6,0.4,10,20,0.9,2,278,0.20,0.4,189,180,0.05,0.08,1.0,13,61],
   ["ER105","Semangka segar","Buah",92.0,28,0.5,0.2,6.9,0.4,0.3,7,12,0.2,7,94,0.04,0.1,315,590,0.05,0.05,0.3,6,46],
   ["ER064","Manggis segar","Buah",83.0,63,0.6,0.6,15.6,1.5,0.2,8,12,0.8,10,62,0.10,0.1,0,0,0.03,0.03,0.3,5,29],
-  // DAGING & UNGGAS
   ["FR005","Ayam daging segar","Daging",55.9,298,18.2,25.0,0.0,0.0,0.9,14,200,1.5,109,386,0.11,0.6,245,0,0.08,0.14,10.4,0,58],
   ["FR024","Sapi daging gemuk","Daging",60.0,273,17.5,22.0,0.0,0.0,0.5,10,150,2.6,93,267,0.17,6.4,12,0,0.08,0.18,7.3,0,100],
   ["FR025","Sapi daging kurus","Daging",69.0,174,19.6,10.0,0.0,0.0,1.4,11,181,2.9,83,489,0.07,4.9,6,181,0.07,0.51,1.2,0,100],
@@ -558,7 +637,6 @@ const TKPI_DB = [
   ["FR007","Ayam hati segar","Daging",53.4,261,27.4,16.1,1.6,0.0,1.5,118,373,15.8,1068,23,0.84,0.0,4957,28000,0.64,4.38,4.1,0,100],
   ["FP021","Ayam goreng dada","Daging",42.2,338,35.2,20.6,0.4,0.0,1.5,79,221,5.6,800,370,0.16,1.1,16,80,0.52,0.16,12.1,0,100],
   ["FP062","Rendang sapi","Daging",57.9,193,22.6,7.9,7.8,0.0,3.8,474,211,14.9,21,534,0.12,0,0,0,0.12,0.0,0,0,100],
-  // IKAN & SEAFOOD
   ["GR039","Ikan layang segar","Ikan",74.0,109,22.0,1.7,0.0,0.0,2.3,50,150,2.0,45,0,0.05,0,0,0,0.05,0,0,0,80],
   ["GR007","Ikan bandeng segar","Ikan",74.0,123,20.0,4.8,0.0,0.0,1.2,20,150,2.0,67,271,0.00,0.9,45,21,0.05,0.10,6.0,0,57],
   ["GR046","Ikan mas segar","Ikan",80.0,86,16.0,2.0,0.0,0.0,2.0,20,150,2.0,65,277,0.10,1.1,45,8,0.05,0.10,2.6,0,80],
@@ -571,37 +649,30 @@ const TKPI_DB = [
   ["GP004","Ikan asin kering","Ikan",40.0,193,42.0,1.5,0.0,0.0,16.5,200,300,0.0,0,0,0.01,0,0,0,0.01,0,0,0,70],
   ["GR070","Ikan tongkol segar","Ikan",74.7,100,13.7,1.5,8.0,0.0,2.1,92,606,1.7,202,227,0.20,1.6,181,0,0.35,0.03,6.6,0,100],
   ["GR019","Ikan cakalang segar","Ikan",73.0,107,19.6,0.7,5.5,0.0,1.2,23,242,2.9,66,239,0.20,0.6,386,0,0.17,0.05,21.7,0,100],
-  // TELUR
   ["HR001","Telur ayam kampung","Telur",73.1,174,10.8,14.0,1.2,0.0,0.9,68,268,4.9,190,141,0.60,1.5,203,23,0.78,0.62,0.2,0,87],
   ["HR002","Telur ayam ras","Telur",74.3,154,12.4,10.8,0.7,0.0,0.8,86,258,3.0,142,119,0.16,1.0,61,22,0.12,0.38,0.2,0,89],
   ["HR008","Telur bebek tambak","Telur",67.7,187,10.9,12.4,7.9,0.0,1.1,64,295,5.4,209,146,0.40,1.8,378,471,1.62,0.03,0.1,0,90],
   ["HP002","Telur bebek asin","Telur",66.5,179,13.6,13.3,4.4,0.0,2.2,120,157,1.8,483,140,0.28,0.98,253,13,0.28,0.98,0.6,0,83],
-  // SUSU
   ["JR006","Susu sapi segar","Susu",88.3,61,3.2,3.5,4.3,0.0,0.7,143,60,1.7,36,149,0.02,0.3,39,12,0.03,0.18,0.2,1,100],
   ["JP006","Susu bubuk","Susu",3.5,513,24.6,30.0,36.2,0.0,5.7,904,694,0.6,380,1330,0.02,4.1,476,118,0.29,1.39,1.6,6,100],
   ["JP007","Susu kental manis","Susu",25.0,343,8.2,10.0,55.0,0.0,1.8,275,209,0.2,150,320,0.02,1.0,155,46,0.05,0.43,0.4,1,100],
   ["JP011","Yoghurt segar","Susu",88.0,52,3.3,2.5,4.0,0.0,2.2,120,90,0.1,40,299,0.01,0.6,22,10,0.04,0.10,0.2,0,100],
   ["JR002","ASI","Susu",88.1,62,1.5,3.2,7.0,0.0,0.2,34,20,0.2,15,41,0.01,0.4,7,0,0.01,0.03,0.2,0,100],
-  // LEMAK & MINYAK
   ["KR011","Minyak kelapa","Lemak",0.0,870,1.0,98.0,0.0,0.0,1.0,0,0,0.0,0,0,0.00,0.0,0,0,0.00,0.00,0.0,0,100],
   ["KP003","Santan dengan air","Lemak",80.0,122,2.0,10.0,7.6,1.4,0.4,25,30,0.1,9,162,0.16,0.4,0,0,0.02,0.00,0.5,2,100],
   ["KP004","Santan murni","Lemak",54.9,324,4.2,34.3,5.6,0.0,1.0,14,45,1.9,18,514,0.37,0.9,0,0,0.02,0.00,0.5,2,100],
   ["KP002","Mentega","Lemak",16.0,742,0.5,81.6,1.4,0.0,1.9,15,16,1.1,653,103,0.00,0.4,1000,155,0.00,0.10,0.0,0,100],
   ["KP001","Margarin","Lemak",15.5,720,0.6,81.0,0.4,0.0,2.5,20,16,0.0,760,26,0.00,0.0,606,633,0.00,0.00,0.0,0,100],
-  // GULA
   ["MP007","Gula putih","Gula",5.4,394,0.0,0.0,94.0,0.0,0.6,5,1,0.1,1,5,0.00,0.0,0,0,0.00,0.00,0.0,0,100],
   ["MP005","Gula aren","Gula",7.0,368,0.0,0.0,92.0,0.0,1.0,75,35,3.0,15,390,0.04,26.4,0,0,0.00,0.01,0.5,0,100],
   ["MP010","Madu","Gula",20.0,294,0.3,0.0,79.5,0.2,0.2,5,16,0.9,6,27,0.04,0.2,0,0,0.00,0.04,0.1,4,100],
-  // BUMBU
   ["DR007","Bawang bombay segar","Bumbu",87.5,43,1.4,0.2,10.3,2.0,0.6,32,44,0.5,12,10,0.10,0.3,788,50,0.03,0.21,0.4,9,94],
 ];
-
-// Index: [0]kode,[1]nama,[2]kat,[3]air,[4]energi,[5]protein,[6]lemak,[7]kh,[8]serat,[9]abu,[10]kalsium,[11]fosfor,[12]besi,[13]natrium,[14]kalium,[15]tembaga,[16]seng,[17]retinol,[18]bkaroten,[19]thia,[20]ribo,[21]niasin,[22]vitc,[23]bdd
 
 const FIELDS = {energi:4,protein:5,lemak:6,kh:7,serat:8,kalsium:10,fosfor:11,besi:12,natrium:13,kalium:14,seng:16,vitc:22};
 const AKG = {energi:2150,protein:60,lemak:72,kh:300,serat:30,besi:26,kalsium:1000,vitc:75};
 
-let selectedFoods = []; // [{data, gram}]
+let selectedFoods = [];
 
 function searchFood(q) {
   const list = document.getElementById('foodList');
@@ -618,7 +689,7 @@ function searchFood(q) {
 }
 
 function addFood(kode) {
-  if(selectedFoods.find(s => s.data[0] === kode)) return; // already added
+  if(selectedFoods.find(s => s.data[0] === kode)) return;
   const food = TKPI_DB.find(f => f[0] === kode);
   if(!food) return;
   selectedFoods.push({data: food, gram: 100});
@@ -701,7 +772,6 @@ function calcTotals() {
   });
   Object.keys(totals).forEach(k => { totals[k] = +totals[k].toFixed(1); });
 
-  // update display
   document.getElementById('tot-energi').textContent = totals.energi;
   document.getElementById('tot-protein').textContent = totals.protein;
   document.getElementById('tot-lemak').textContent = totals.lemak;
@@ -715,7 +785,6 @@ function calcTotals() {
   document.getElementById('tot-seng').textContent = totals.seng;
   document.getElementById('tot-vitc').textContent = totals.vitc;
 
-  // AKG bars
   const akg = [
     ['energi','bar-energi','pct-energi',AKG.energi],
     ['protein','bar-protein','pct-protein',AKG.protein],
@@ -745,7 +814,6 @@ function exportData() {
       sf.data[23]
     ].join(',');
   });
-  // totals row
   const t = {energi:0,protein:0,lemak:0,kh:0,serat:0,kalsium:0,fosfor:0,besi:0,natrium:0,kalium:0,seng:0,vitc:0};
   selectedFoods.forEach(sf => {
     const r = sf.gram/100;
